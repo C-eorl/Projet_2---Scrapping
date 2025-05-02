@@ -1,7 +1,11 @@
+import os
+import re
+from os.path import exists
 import requests
 import csv
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+
 
 def request_url():
     while True:
@@ -37,8 +41,13 @@ def scrap_one_element():
             print("Une erreur est survenue : ", e)
             continue
 
+def safe_filename(title):
+    return re.sub(r'[\\/*?:"<>|]', "_", title) # remplace tous les caractères de la liste par "_"
+
 def export_csv(book):
-    filename= f"{book['title']}.csv"
+    if not exists("Dossier_CSV"):
+        os.mkdir("Dossier_CSV")
+    filename= f"Dossier_CSV/{safe_filename(book['title'])}.csv"
     with open(filename,"w" ,newline="") as fichier:
         fieldnames = list(book.keys())
         writer = csv.DictWriter(fichier, fieldnames=fieldnames)
