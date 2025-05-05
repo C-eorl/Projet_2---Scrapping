@@ -25,14 +25,14 @@ def scrap_one_element(url):
         response, url = request_url(url)
         try:
             soup = BeautifulSoup(response.text, "html.parser")
-            table = soup.find("tbody")
+            table = soup.find("table").find_all("tr")
             book ={
                 "product_page_url": url,
-                "universal_product_code(upc)": table[0].find("th", string="UPC").find_next_sibling("td").text , # id "content_inner" => table
+                "universal_product_code(upc)": table[0].find("td").text, # id "content_inner" => table
                 "title": soup.find("h1").text, # h1
-                "price_including_tax": soup.find("table").find("th", string="Price (incl. tax)").find_next_sibling("td").text, # id "content_inner" => table
-                "price_excluding_tax": soup.find("table").find("th", string="Price (excl. tax)").find_next_sibling("td").text, # id "content_inner" => table
-                "number_available": soup.find("table").find("th", string="Availability").find_next_sibling("td").text, # id "content_inner" => table
+                "price_including_tax": table[3].find("td").text, # id "content_inner" => table
+                "price_excluding_tax": table[2].find("td").text, # id "content_inner" => table
+                "number_available": table[5].find("td").text, # id "content_inner" => table
                 "product_description": soup.find("div", id="product_description").find_next_sibling("p").text, # id "product_description" élément suivant p
                 "category": soup.find("ul", class_="breadcrumb").find_all("li")[2].find("a").text, # ul class "breadcrumb" 3eme li a
                 "review_rating": soup.find("p", class_="star-rating")["class"][1], # p class "star-rating" /!\
@@ -138,3 +138,6 @@ def user_interface():
 
 if __name__ == "__main__":
     user_interface()
+    # soup = BeautifulSoup(requests.get("https://books.toscrape.com/catalogue/candide_316/index.html").text, "html.parser")
+    # table = soup.find("table").find_all("tr")
+    # print(table[0].find("td").text)
