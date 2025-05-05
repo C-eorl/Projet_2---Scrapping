@@ -1,6 +1,8 @@
 import os
 import re
 from os.path import exists
+from pydoc import replace
+
 import requests
 import csv
 from bs4 import BeautifulSoup
@@ -33,14 +35,14 @@ def scrap_one_element(url):
                 "price_including_tax": table[3].find("td").text, # id "content_inner" => table
                 "price_excluding_tax": table[2].find("td").text, # id "content_inner" => table
                 "number_available": table[5].find("td").text, # id "content_inner" => table
-                "product_description": soup.find("div", id="product_description").find_next_sibling("p").text, # id "product_description" élément suivant p
+                "product_description": soup.find("div", id="product_description").find_next_sibling("p").text if soup.find("div", id="product_description") else "Pas de description", # id "product_description" élément suivant p
                 "category": soup.find("ul", class_="breadcrumb").find_all("li")[2].find("a").text, # ul class "breadcrumb" 3eme li a
                 "review_rating": soup.find("p", class_="star-rating")["class"][1], # p class "star-rating" /!\
                 "image_url": urljoin("https://books.toscrape.com", soup.find("div", id="product_gallery").find("img")["src"]) # id "product_galery" => img src="" https://books.toscrape.com
             }
             return book
         except Exception as e: # lève une erreur s'il y a un caillou dans la soup
-            print("Une erreur est survenue : ", e)
+            print("Une erreur est survenue (scrap_one_element): ", e)
             continue
 
 def scrap_all_in_category(url):
@@ -59,7 +61,7 @@ def scrap_all_in_category(url):
     while True:
         response, url= request_url(url)
         try:
-            list_url =[]
+            list_url = []
             list_book = []
             find_url_page(list_url, response)
             for book_url in list_url:
@@ -67,7 +69,7 @@ def scrap_all_in_category(url):
 
             return list_book
         except Exception as e: # lève une erreur s'il y a un caillou dans la soup
-            print("Une erreur est survenue : ", e)
+            print("Une erreur est survenue (scrap_all_in_category): ", e)
             continue
 
 def scrap_all_in_all_category(url):
@@ -85,9 +87,44 @@ def scrap_all_in_all_category(url):
                 export_csv(scrap_all_in_category(url_category))
             return print("Toutes les catégories ont été exporter dans le dossier Dossier_CSV")
         except Exception as e:  # lève une erreur s'il y a un caillou dans la soup
-            print("Une erreur est survenue : ", e)
+            print("Une erreur est survenue (scrap_all_in_all_category): ", e)
             continue
 
+def extraction_img():
+    print("========   ATTENTION   ========")
+    print("Veuillez éxécutez la fonction 3 'Scrap tous les livres de toutes les catégories'")
+    print("pour pouvoir récupèrer les images de tous les livres de chaque catégories")
+    print("===============================")
+    if input("Tapez 'oui' pour continuer => ").lower() == "oui":
+        path_directory_csv = os.path.join(os.path.dirname(__file__), "Dossier_CSV") # chemin de Dossier_CSV
+        if not exists("Dossier_img"):
+            os.mkdir("Dossier_img")
+
+        for file_csv in os.listdir(path_directory_csv):
+            nom_category = file_csv.replace(".csv", "")
+            path_file_csv = os.path.join(path_directory_csv, file_csv)
+            path_directory_category_img = f"Dossier_img/{nom_category}"
+            if not exists(path_directory_category_img):
+                os.mkdir(path_directory_category_img)
+
+            list_url_img = {}
+            with open(path_file_csv, "r", encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                for  ligne in reader:
+                    list_url_img[ligne["title"]] = ligne["image_url"]
+
+            for title, url_img in list_url_img.items():
+                title_clean = safe_filename(title)
+                path_file_img = path_directory_category_img +f"/{title_clean}.jpg"
+                # faire vérification si fichier img exist
+                r = requests.get(url_img)
+                if r.status_code == 200:
+                    with open(path_file_img, "wb") as f:
+                        f.write(r.content)
+                    print(f"Image téléchargée sous le nom : {title_clean} dans le dossier {path_directory_category_img}")
+                else:
+                    print("Erreur lors du téléchargement :", r.status_code)
+        print("Toutes les images ont été enregistrées")
 
 def safe_filename(title):
     return re.sub(r'[\\/*?:"<>|]', "_", title) # remplace tous les caractères de la liste par "_"
@@ -120,17 +157,20 @@ def export_csv(results):
 
 def user_interface():
     while True:
-        print("======================")
-        print("||     Scrapping    ||")
-        print("======================")
+        print("============================================")
+        print("||                Scrapping               ||")
+        print("============================================")
         print("1 - Scrap un livre")
         print("2 - Scrap tous les livres d'une catégorie")
         print("3 - Scrap tous les livres de toutes les catégories")
+        print("4 - Extraction des images")
         print('0 - Quittez')
-        match input("Choississez votre fonction : "):
+        print("============================================")
+        match input("Choisissez votre fonction : "):
             case "1": export_csv(scrap_one_element(input_url()))
             case "2": export_csv(scrap_all_in_category(input_url()))
             case "3": scrap_all_in_all_category(input_url())
+            case "4": extraction_img()
             case "0": break
             case _: print("Veuillez entrer une valeur valide")
 
@@ -138,6 +178,6 @@ def user_interface():
 
 if __name__ == "__main__":
     user_interface()
-    # soup = BeautifulSoup(requests.get("https://books.toscrape.com/catalogue/candide_316/index.html").text, "html.parser")
-    # table = soup.find("table").find_all("tr")
-    # print(table[0].find("td").text)
+    # soup = BeautifulSoup(requests.get("https://books.toscrape.com/catalogue/the-complete-stories-and-poems-the-works-of-edgar-allan-poe-cameo-edition_238/index.html").text, "html.parser")
+    # table = soup.find("article", class_="product_page").find_all("p")
+    # print(table)
