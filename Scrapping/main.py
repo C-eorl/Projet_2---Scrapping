@@ -25,9 +25,10 @@ def scrap_one_element(url):
         response, url = request_url(url)
         try:
             soup = BeautifulSoup(response.text, "html.parser")
+            table = soup.find("tbody")
             book ={
                 "product_page_url": url,
-                "universal_product_code(upc)": soup.find("table").find("th", string="UPC").find_next_sibling("td").text , # id "content_inner" => table
+                "universal_product_code(upc)": table[0].find("th", string="UPC").find_next_sibling("td").text , # id "content_inner" => table
                 "title": soup.find("h1").text, # h1
                 "price_including_tax": soup.find("table").find("th", string="Price (incl. tax)").find_next_sibling("td").text, # id "content_inner" => table
                 "price_excluding_tax": soup.find("table").find("th", string="Price (excl. tax)").find_next_sibling("td").text, # id "content_inner" => table
@@ -70,7 +71,23 @@ def scrap_all_in_category(url):
             continue
 
 def scrap_all_in_all_category(url):
-    pass
+    list_url_categories = list()
+    while True:
+        response, url= request_url(url)
+        try:
+            soup = BeautifulSoup(response.text, "html.parser")
+            list_category = soup.find("ul", class_="nav-list").find("li").find("ul").find_all("li")
+            for a in list_category:
+                href = a.find("a")["href"]
+                list_url_categories.append(urljoin(url, href))
+
+            for url_category in list_url_categories:
+                export_csv(scrap_all_in_category(url_category))
+            return print("Toutes les catégories ont été exporter dans le dossier Dossier_CSV")
+        except Exception as e:  # lève une erreur s'il y a un caillou dans la soup
+            print("Une erreur est survenue : ", e)
+            continue
+
 
 def safe_filename(title):
     return re.sub(r'[\\/*?:"<>|]', "_", title) # remplace tous les caractères de la liste par "_"
@@ -78,6 +95,7 @@ def safe_filename(title):
 def export_csv(results):
     if not exists("Dossier_CSV"):
         os.mkdir("Dossier_CSV")
+
     if type(results) == list:
 
         filename = f"Dossier_CSV/{safe_filename(results[0]['category'])}.csv"
@@ -107,10 +125,12 @@ def user_interface():
         print("======================")
         print("1 - Scrap un livre")
         print("2 - Scrap tous les livres d'une catégorie")
+        print("3 - Scrap tous les livres de toutes les catégories")
         print('0 - Quittez')
         match input("Choississez votre fonction : "):
             case "1": export_csv(scrap_one_element(input_url()))
             case "2": export_csv(scrap_all_in_category(input_url()))
+            case "3": scrap_all_in_all_category(input_url())
             case "0": break
             case _: print("Veuillez entrer une valeur valide")
 
