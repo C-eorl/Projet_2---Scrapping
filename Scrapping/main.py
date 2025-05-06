@@ -1,7 +1,6 @@
 import os
 import re
 from os.path import exists
-from pydoc import replace
 
 import requests
 import csv
@@ -117,14 +116,16 @@ def extraction_img():
                 title_clean = safe_filename(title)
                 path_file_img = path_directory_category_img +f"/{title_clean}.jpg"
                 # faire vérification si fichier img exist
-                r = requests.get(url_img)
-                if r.status_code == 200:
-                    with open(path_file_img, "wb") as f:
-                        f.write(r.content)
-                    print(f"Image téléchargée sous le nom : {title_clean} dans le dossier {path_directory_category_img}")
-                else:
-                    print("Erreur lors du téléchargement :", r.status_code)
-        print("Toutes les images ont été enregistrées")
+                if not exists(path_file_img):
+                    r = requests.get(url_img)
+                    if r.status_code == 200:
+                        with open(path_file_img, "wb") as f:
+                            f.write(r.content)
+                        print(f"Image téléchargée sous le nom : {title_clean} dans le dossier {path_directory_category_img}")
+                    else:
+                        print("Erreur lors du téléchargement :", r.status_code)
+                print(f"l'image {title_clean} dans le dossier {path_directory_category_img} existe déjà.")
+        print("Toutes les images ont été enregistrées.")
 
 def safe_filename(title):
     return re.sub(r'[\\/*?:"<>|]', "_", title) # remplace tous les caractères de la liste par "_"
