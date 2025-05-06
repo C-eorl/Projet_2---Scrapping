@@ -94,6 +94,10 @@ def extraction_img():
     print("Veuillez éxécutez la fonction 3 'Scrap tous les livres de toutes les catégories'")
     print("pour pouvoir récupèrer les images de tous les livres de chaque catégories")
     print("===============================")
+    if not exists(os.path.join(os.path.dirname(__file__), "Dossier_CSV")):
+        return print("Aucun dossier contenant des fichier .csv n'a été trouvé\n"
+                     "Veuillez utiliser la fonction 3 avant.")
+
     if input("Tapez 'oui' pour continuer => ").lower() == "oui":
         path_directory_csv = os.path.join(os.path.dirname(__file__), "Dossier_CSV") # chemin de Dossier_CSV
         if not exists("Dossier_img"):
@@ -179,6 +183,3 @@ def user_interface():
 
 if __name__ == "__main__":
     user_interface()
-    # soup = BeautifulSoup(requests.get("https://books.toscrape.com/catalogue/the-complete-stories-and-poems-the-works-of-edgar-allan-poe-cameo-edition_238/index.html").text, "html.parser")
-    # table = soup.find("article", class_="product_page").find_all("p")
-    # print(table)
