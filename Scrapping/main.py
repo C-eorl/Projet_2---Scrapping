@@ -152,7 +152,10 @@ def export_csv(results):
             print(f"La catégorie {results[0]['category']} a été exporté dans le fichier {filename}")
 
     if type(results) == dict :
-        filename= f"Dossier_CSV/{safe_filename(results['title'])}.csv"
+        directory = "Dossier_CSV_one_book"
+        if not exists(directory):
+            os.mkdir(directory)
+        filename= f"{directory}/{safe_filename(results['title'])}.csv"
         with open(filename,"w" ,newline="", encoding="utf-8") as fichier:
             fieldnames = list(results.keys())
             writer = csv.DictWriter(fichier, fieldnames=fieldnames)

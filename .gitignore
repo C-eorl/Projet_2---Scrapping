@@ -9,4 +9,5 @@ __pycache__/
 *.py[cod]
 # Dossier ressource
 Dossier_CSV/
+Dossier_CSV_one_book/
 Dossier_img/
