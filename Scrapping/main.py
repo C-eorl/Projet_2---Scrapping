@@ -128,7 +128,8 @@ def extraction_img():
                         print(f"Image téléchargée sous le nom : {title_clean} dans le dossier {path_directory_category_img}")
                     else:
                         print("Erreur lors du téléchargement :", r.status_code)
-                print(f"l'image {title_clean} dans le dossier {path_directory_category_img} existe déjà.")
+                else:
+                    print(f"l'image {title_clean} dans le dossier {path_directory_category_img} existe déjà.")
         print("Toutes les images ont été enregistrées.")
 
 def safe_filename(title):
