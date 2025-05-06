@@ -7,3 +7,6 @@
 # Python
 __pycache__/
 *.py[cod]
+# Dossier ressource
+Dossier_CSV/
+Dossier_img/
