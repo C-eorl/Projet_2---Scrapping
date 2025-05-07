@@ -8,7 +8,7 @@ Ce projet de scraping récupère des données de livres à partir d’un site we
 
 ### 1. Cloner ce dépôt
 ```bash
-git clone https://github.com/votre-utilisateur/scraping-livres.git
+git clone git@github.com:C-eorl/Projet_2---Scrapping.git
 cd scraping-livres
 ```
 ### 2. Créer un environnement virtuel
