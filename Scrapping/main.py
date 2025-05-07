@@ -1,52 +1,63 @@
 import os
 import re
 from os.path import exists
-
 import requests
 import csv
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
+text_to_number = {
+    'zero': 0,
+    'one': 1,
+    'two': 2,
+    'three': 3,
+    'four': 4,
+    'five': 5,
+}
+
+
+
 def input_url():
     return input("Saississez votre url :\n")
 
 def request_url(url):
-    while True:
-        try:
-            response = requests.get(url)
-            response.raise_for_status() # lève erreur (ex: 404 etc..)
-            return response, url
-        except requests.exceptions.RequestException as e: #lève erreur si url non valide
-            print("L'URL n'est pas valide :", e)
-            print("Veuillez entrez une URL valide")
-            continue
+
+    try:
+        session = requests.Session()
+        response = session.get(url)
+        response.raise_for_status() # lève erreur (ex: 404 etc..)
+        return response, url
+    except requests.exceptions.RequestException as e: #lève erreur si url non valide
+        print("L'URL n'est pas valide :", e)
+        print("Veuillez entrez une URL valide")
 
 def scrap_one_element(url):
-    while True:
-        response, url = request_url(url)
-        try:
-            soup = BeautifulSoup(response.text, "html.parser")
-            table = soup.find("table").find_all("tr")
-            book ={
-                "product_page_url": url,
-                "universal_product_code(upc)": table[0].find("td").text, # id "content_inner" => table
-                "title": soup.find("h1").text, # h1
-                "price_including_tax": table[3].find("td").text, # id "content_inner" => table
-                "price_excluding_tax": table[2].find("td").text, # id "content_inner" => table
-                "number_available": table[5].find("td").text, # id "content_inner" => table
-                "product_description": soup.find("div", id="product_description").find_next_sibling("p").text if soup.find("div", id="product_description") else "Pas de description", # id "product_description" élément suivant p
-                "category": soup.find("ul", class_="breadcrumb").find_all("li")[2].find("a").text, # ul class "breadcrumb" 3eme li a
-                "review_rating": soup.find("p", class_="star-rating")["class"][1], # p class "star-rating" /!\
-                "image_url": urljoin("https://books.toscrape.com", soup.find("div", id="product_gallery").find("img")["src"]) # id "product_galery" => img src="" https://books.toscrape.com
-            }
-            return book
-        except Exception as e: # lève une erreur s'il y a un caillou dans la soup
-            print("Une erreur est survenue (scrap_one_element): ", e)
-            continue
+
+    response, url = request_url(url)
+    try:
+        soup = BeautifulSoup(response.content, "html.parser")
+        table = soup.find("table").find_all("tr")
+        rating = soup.find("p", class_="star-rating")["class"][1]
+        book ={
+            "product_page_url": url,
+            "universal_product_code(upc)": table[0].find("td").text, # id "content_inner" => table
+            "title": soup.find("h1").text, # h1
+            "price_including_tax": table[3].find("td").text, # id "content_inner" => table
+            "price_excluding_tax": table[2].find("td").text, # id "content_inner" => table
+            "number_available": int(re.search(r"\((\d+)", table[5].find("td").text).group(1)), # id "content_inner" => table
+            "product_description": soup.find("div", id="product_description").find_next_sibling("p").text if soup.find("div", id="product_description") else "Pas de description", # id "product_description" élément suivant p
+            "category": soup.find("ul", class_="breadcrumb").find_all("li")[2].find("a").text, # ul class "breadcrumb" 3eme li a
+            "review_rating": text_to_number[rating.lower()], # p class "star-rating" /!\
+            "image_url": urljoin("https://books.toscrape.com", soup.find("div", id="product_gallery").find("img")["src"]) # id "product_galery" => img src="" https://books.toscrape.com
+        }
+        return book
+    except Exception as e: # lève une erreur s'il y a un caillou dans la soup
+        print("Une erreur est survenue (scrap_one_element): ", e)
+
 
 def scrap_all_in_category(url):
     def find_url_page(list_url, response):
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.content, "html.parser")
         for a in soup.find_all("h3"):
             list_url.append(urljoin(url, a.find("a")["href"]))
 
@@ -57,39 +68,38 @@ def scrap_all_in_category(url):
         else:
             return list_url
 
-    while True:
-        response, url= request_url(url)
-        try:
-            list_url = []
-            list_book = []
-            find_url_page(list_url, response)
-            for book_url in list_url:
-                list_book.append(scrap_one_element(book_url))
+    response, url= request_url(url)
+    try:
+        list_url = []
+        list_book = []
+        find_url_page(list_url, response)
+        for book_url in list_url:
+            list_book.append(scrap_one_element(book_url))
 
-            return list_book
-        except Exception as e: # lève une erreur s'il y a un caillou dans la soup
-            print("Une erreur est survenue (scrap_all_in_category): ", e)
-            continue
+        return list_book
+    except Exception as e: # lève une erreur s'il y a un caillou dans la soup
+        print("Une erreur est survenue (scrap_all_in_category): ", e)
+
 
 def scrap_all_in_all_category(url):
     list_url_categories = list()
-    while True:
-        response, url= request_url(url)
-        try:
-            soup = BeautifulSoup(response.text, "html.parser")
-            list_category = soup.find("ul", class_="nav-list").find("li").find("ul").find_all("li")
-            for a in list_category:
-                href = a.find("a")["href"]
-                list_url_categories.append(urljoin(url, href))
+    response, url= request_url(url)
+    try:
+        soup = BeautifulSoup(response.content, "html.parser")
+        list_category = soup.find("ul", class_="nav-list").find("li").find("ul").find_all("li")
+        for a in list_category:
+            href = a.find("a")["href"]
+            list_url_categories.append(urljoin(url, href))
 
-            for url_category in list_url_categories:
-                export_csv(scrap_all_in_category(url_category))
-            return print("Toutes les catégories ont été exporter dans le dossier Dossier_CSV")
-        except Exception as e:  # lève une erreur s'il y a un caillou dans la soup
-            print("Une erreur est survenue (scrap_all_in_all_category): ", e)
-            continue
+        for url_category in list_url_categories:
+            export_csv(scrap_all_in_category(url_category))
+        return print("Toutes les catégories ont été exporter dans le dossier Dossier_CSV")
+    except Exception as e:  # lève une erreur s'il y a un caillou dans la soup
+        print("Une erreur est survenue (scrap_all_in_all_category): ", e)
+
 
 def extraction_img():
+
     print("========   ATTENTION   ========")
     print("Veuillez éxécutez la fonction 3 'Scrap tous les livres de toutes les catégories'")
     print("pour pouvoir récupèrer les images de tous les livres de chaque catégories")
