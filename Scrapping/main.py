@@ -15,7 +15,7 @@ def input_url():
 
 def request_url(url: str) :
     '''
-        Envoie une requête HTTP GET à l'URL fournie et retourne la réponse.
+    Envoie une requête HTTP GET à l'URL fournie et retourne la réponse.
     :param url:
     :return: Tuple (soup, url) si la requête réussit.
     '''
