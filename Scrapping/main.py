@@ -1,19 +1,12 @@
 import os
 import re
+from concurrent.futures import as_completed
+from concurrent.futures.thread import ThreadPoolExecutor
 from os.path import exists
 import requests
 import csv
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-
-text_to_number = {
-    'zero': 0,
-    'one': 1,
-    'two': 2,
-    'three': 3,
-    'four': 4,
-    'five': 5,
-}
 
 
 
@@ -32,7 +25,14 @@ def request_url(url):
         print("Veuillez entrez une URL valide")
 
 def scrap_one_element(url):
-
+    text_to_number = {
+        'zero': 0,
+        'one': 1,
+        'two': 2,
+        'three': 3,
+        'four': 4,
+        'five': 5,
+    }
     response, url = request_url(url)
     try:
         soup = BeautifulSoup(response.content, "html.parser")
@@ -54,7 +54,6 @@ def scrap_one_element(url):
     except Exception as e: # lève une erreur s'il y a un caillou dans la soup
         print("Une erreur est survenue (scrap_one_element): ", e)
 
-
 def scrap_all_in_category(url):
     def find_url_page(list_url, response):
         soup = BeautifulSoup(response.content, "html.parser")
@@ -73,13 +72,15 @@ def scrap_all_in_category(url):
         list_url = []
         list_book = []
         find_url_page(list_url, response)
-        for book_url in list_url:
-            list_book.append(scrap_one_element(book_url))
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(scrap_one_element, book_url) for book_url in list_url]
+            for future in as_completed(futures):
+                book_data = future.result()
+                list_book.append(book_data)
 
         return list_book
     except Exception as e: # lève une erreur s'il y a un caillou dans la soup
         print("Une erreur est survenue (scrap_all_in_category): ", e)
-
 
 def scrap_all_in_all_category(url):
     list_url_categories = list()
@@ -97,7 +98,6 @@ def scrap_all_in_all_category(url):
     except Exception as e:  # lève une erreur s'il y a un caillou dans la soup
         print("Une erreur est survenue (scrap_all_in_all_category): ", e)
 
-
 def extraction_img():
 
     print("========   ATTENTION   ========")
@@ -112,35 +112,36 @@ def extraction_img():
         path_directory_csv = os.path.join(os.path.dirname(__file__), "Dossier_CSV") # chemin de Dossier_CSV
         if not exists("Dossier_img"):
             os.mkdir("Dossier_img")
+        with ThreadPoolExecutor(max_workers=30) as executor:
+            for file_csv in os.listdir(path_directory_csv):
+                nom_category = file_csv.replace(".csv", "")
+                path_file_csv = os.path.join(path_directory_csv, file_csv)
+                path_directory_category_img = f"Dossier_img/{nom_category}"
+                if not exists(path_directory_category_img):
+                    os.mkdir(path_directory_category_img)
 
-        for file_csv in os.listdir(path_directory_csv):
-            nom_category = file_csv.replace(".csv", "")
-            path_file_csv = os.path.join(path_directory_csv, file_csv)
-            path_directory_category_img = f"Dossier_img/{nom_category}"
-            if not exists(path_directory_category_img):
-                os.mkdir(path_directory_category_img)
 
-            list_url_img = {}
-            with open(path_file_csv, "r", encoding='utf-8') as file:
-                reader = csv.DictReader(file)
-                for  ligne in reader:
-                    list_url_img[ligne["title"]] = ligne["image_url"]
+                with open(path_file_csv, "r", encoding='utf-8') as file:
+                    reader = csv.DictReader(file)
+                    for  ligne in reader:
+                        title = ligne["title"]
+                        url_img = ligne["image_url"]
+                        title_clean = safe_filename(title)
+                        path_file_img = path_directory_category_img + f"/{title_clean}.jpg"
 
-            for title, url_img in list_url_img.items():
-                title_clean = safe_filename(title)
-                path_file_img = path_directory_category_img +f"/{title_clean}.jpg"
-                # faire vérification si fichier img exist
-                if not exists(path_file_img):
-                    r = requests.get(url_img)
-                    if r.status_code == 200:
-                        with open(path_file_img, "wb") as f:
-                            f.write(r.content)
-                        print(f"Image téléchargée sous le nom : {title_clean} dans le dossier {path_directory_category_img}")
-                    else:
-                        print("Erreur lors du téléchargement :", r.status_code)
-                else:
-                    print(f"l'image {title_clean} dans le dossier {path_directory_category_img} existe déjà.")
-        print("Toutes les images ont été enregistrées.")
+                        executor.submit(download_image, title_clean, url_img, path_file_img, nom_category)
+
+def download_image(title, url_img, path_file_img, category):
+    if not exists(path_file_img):
+        r = requests.get(url_img)
+        if r.status_code == 200:
+            with open(path_file_img, "wb") as f:
+                f.write(r.content)
+            print(f"[{category}] Image téléchargée : {title}")
+        else:
+            print(f"[{category}] Erreur {r.status_code} pour {title}")
+    else:
+        print(f"[{category}] Image déjà présente : {title}")
 
 def safe_filename(title):
     return re.sub(r'[\\/*?:"<>|]', "_", title) # remplace tous les caractères de la liste par "_"
