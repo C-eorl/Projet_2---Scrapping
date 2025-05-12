@@ -8,21 +8,20 @@ import csv
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-
+session = requests.Session()
 
 def input_url():
     return input("Saississez votre url :\n")
 
 def request_url(url: str) :
-    '''
+    """
     Envoie une requête HTTP GET à l'URL fournie et retourne la réponse.
     :param url:
     :return: Tuple (soup, url) si la requête réussit.
-    '''
+    """
     try:
-        session = requests.Session()
         response = session.get(url)
-        response.raise_for_status() # lève erreur (ex: 404 etc..)
+        response.raise_for_status() # lève erreur (ex : 404, etc..)
         soup = BeautifulSoup(response.content, "html.parser")
         return soup, url
     except requests.exceptions.RequestException as e: # lève erreur si url non valide
@@ -71,15 +70,21 @@ def scrap_all_in_category(url: str):
     :param url : L'URL de la page d'accueil de la catégorie à scraper.
     :return list(dict): Une liste de dictionnaires contenant les données de chaque livre.
     """
-    def find_url_page(list_url, soup):
+    def find_url_page(list_url: list[str], soup: BeautifulSoup):
+        """
+
+        :param list_url: liste
+        :param soup: objet bs4 permettant de rechercher les éléments
+        :return: list_url : liste de toutes les urls des livres trouvées dans la catégorie
+        """
 
         for a in soup.find_all("h3"):
             list_url.append(urljoin(url, a.find("a")["href"]))
 
         next_page = soup.find("li", class_="next")
         if next_page:
-            res = requests.get(urljoin(url,next_page.find("a")["href"]))
-            find_url_page(list_url, res)
+            soupe = request_url(urljoin(url,next_page.find("a")["href"]))
+            find_url_page(list_url, soupe[0])
         else:
             return list_url
 
@@ -96,7 +101,7 @@ def scrap_all_in_category(url: str):
 
 def scrap_all_in_all_category(url: str):
     """
-    Récupère et exporte les données de toutes les catégories de livres du site.
+    Récupère et exporte en .csv les données de toutes les catégories de livres du site.
 
     :param url : L'URL de la page d'accueil du site à scraper.
 
@@ -115,10 +120,16 @@ def scrap_all_in_all_category(url: str):
 
 
 def extraction_img():
+    """
+    Récupère-les urls des images dans chaque fichier .csv
+    Crée dossier → Dossier_img/[categories]/image.jpg si n'existe pas
+    puis télécharge l'image
+    :return: None
+    """
 
     print("========   ATTENTION   ========")
-    print("Veuillez éxécutez la fonction 3 'Scrap tous les livres de toutes les catégories'")
-    print("pour pouvoir récupèrer les images de tous les livres de chaque catégories")
+    print("Veuillez exécuter la fonction 3 'Scrap tous les livres de toutes les catégories'")
+    print("pour pouvoir récupérer les images de tous les livres de chaque catégories")
     print("===============================")
     if not exists(os.path.join(os.path.dirname(__file__), "Dossier_CSV")):
         return print("Aucun dossier contenant des fichier .csv n'a été trouvé\n"
@@ -151,14 +162,13 @@ def download_image(title: str, url_img: str, path_file_img:str, category:str):
     """
     Télécharge une image depuis une URL si elle n'existe pas déjà localement.
 
-    :param
-        url_img (str): URL de l'image à télécharger.
-        path_file_img (str): Chemin de destination du fichier image local.
-        category (str): Nom de la catégorie du livre, utilisé pour les logs.
-        title (str): Titre du livre, utilisé pour les logs.
-
-    :return None
+    :param title: Titre du livre, utilisé pour les logs.
+    :param url_img: URL de l'image à télécharger.
+    :param path_file_img: Chemin de destination du fichier image local.
+    :param category: Nom de la catégorie du livre
+    :return: None
     """
+
     if not exists(path_file_img):
         r = requests.get(url_img)
         if r.status_code == 200:
@@ -176,11 +186,11 @@ def safe_filename(title:str):
 def export_csv(results):
     """
     Exporte les données d'une liste de livres dans un fichier CSV.
-
     :param results: Liste de dictionnaires ou dictionnaire contenant les données des livres.
-                        Chaque dictionnaire représente un livre.
-    :return None
+                    Chaque dictionnaire représente un livre.
+    :return: None
     """
+
     if not exists("Dossier_CSV"):
         os.mkdir("Dossier_CSV")
 
