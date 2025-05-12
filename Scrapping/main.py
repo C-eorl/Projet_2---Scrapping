@@ -11,6 +11,7 @@ from urllib.parse import urljoin
 session = requests.Session()
 
 def input_url():
+    """ Renvoie l'input de l'utilisateur (url)"""
     return input("Saississez votre url :\n")
 
 def request_url(url: str) :
