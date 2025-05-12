@@ -49,7 +49,7 @@ def scrap_one_element(url: str):
         rating = soup.find("p", class_="star-rating")["class"][1]
         book ={
             "product_page_url": url,
-            "universal_product_code(upc)": table[0].find("ti").text,
+            "universal_product_code(upc)": table[0].find("td").text,
             "title": soup.find("h1").text,
             "price_including_tax": table[3].find("td").text,
             "price_excluding_tax": table[2].find("td").text,
@@ -116,7 +116,7 @@ def scrap_all_in_all_category(url: str):
 
     for url_category in list_url_categories:
         export_csv(scrap_all_in_category(url_category))
-    return print("Toutes les catégories ont été exporter dans le dossier Dossier_CSV")
+    return print("Toutes les catégories ont été exportées dans le dossier Dossier_CSV")
 
 
 def extraction_img():
@@ -157,6 +157,7 @@ def extraction_img():
                         path_file_img = path_directory_category_img + f"/{title_clean}.jpg"
 
                         executor.submit(download_image, title_clean, url_img, path_file_img, nom_category)
+        return print("Le téléchargement des images est terminé.")
 
 def download_image(title: str, url_img: str, path_file_img:str, category:str):
     """
