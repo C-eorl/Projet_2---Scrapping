@@ -6,6 +6,15 @@ Ce projet de scraping récupère des données de livres à partir d’un site we
 
 ## Installation
 
+### Prérequis
+*python 3.12*
+- installation:
+```bash
+winget install "Python 3.12"
+```
+- soit:
+https://www.python.org/downloads/release/python-3120/
+
 ### 1. Cloner ce dépôt
 ```bash
 git clone git@github.com:C-eorl/Projet_2---Scrapping.git
@@ -20,6 +29,15 @@ source venv/bin/activate  # sous Windows : venv\Scripts\activate
 ```bash
 pip install -r requirements.txt
 ```
+### 4. Lancer le script
+Attention à bien être dans le dossier scrapping.
+```bash
+cd scrapping
+```
+```bash
+python main.py
+```
+
 
 ---
 
@@ -28,7 +46,7 @@ pip install -r requirements.txt
 En lançant le fichier main.py, le terminal s'ouvrira laissant le choix à 4 fonction et le choix de quitter le script:
  - 1 - Scrap un livre
  - 2 - Scrap tous les livres d'une catégorie
- - 3 - Scrap tous les livre de toutes les catégories
+ - 3 - Scrap tous les livres de toutes les catégories
  - 4 - Extraction des images
 
 ### Fonction 1 - Scrap un livre
