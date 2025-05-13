@@ -28,14 +28,12 @@ def request_url(url: str) :
     except requests.exceptions.RequestException as e: # lève erreur si url non valide
         print("L'URL n'est pas valide :", e)
         print("Veuillez entrez une URL valide")
-
-def scrap_one_element(url: str):
+def transform_ressource_book(book:dict):
     """
-   Extrait les informations détaillées d'un livre à partir de sa page produit.
-
-   :param url: L'URL de la page du livre.
-   :return: Dict : dictionnaire des informations du livre.
-   """
+    Transforme les valeurs de la variable book pour les prendre utilisables.
+    :param book: Dictionnaire comprenant toutes les informations du livre
+    :return: book avec les valeurs "nettoyer"
+    """
     text_to_number = {
         'zero': 0,
         'one': 1,
@@ -44,23 +42,39 @@ def scrap_one_element(url: str):
         'four': 4,
         'five': 5,
     }
+    available = book["number_available"]
+    book["number_available"] = int(re.search(r"\((\d+)", available).group(1))
+    rating = book["review_rating"]
+    book["review_rating"] = text_to_number[rating.lower()]
+    image_url = book["image_url"]
+    book["image_url"] = urljoin("https://books.toscrape.com", image_url)
+    book["path_img"] = f"Dossier_img/{book["category"]}/{safe_filename(book["title"])}"
+    return book
+
+def scrap_one_element(url: str):
+    """
+   Extrait les informations détaillées d'un livre à partir de sa page produit.
+
+   :param url: L'URL de la page du livre.
+   :return: Dict : dictionnaire des informations du livre.
+   """
+
     soup, url = request_url(url)
     try:
         table = soup.find("table").find_all("tr")
-        rating = soup.find("p", class_="star-rating")["class"][1]
         book ={
             "product_page_url": url,
             "universal_product_code(upc)": table[0].find("td").text,
             "title": soup.find("h1").text,
             "price_including_tax": table[3].find("td").text,
             "price_excluding_tax": table[2].find("td").text,
-            "number_available": int(re.search(r"\((\d+)", table[5].find("td").text).group(1)),
+            "number_available": table[5].find("td").text,
             "product_description": soup.find("div", id="product_description").find_next_sibling("p").text if soup.find("div", id="product_description") else "Pas de description",
             "category": soup.find("ul", class_="breadcrumb").find_all("li")[2].find("a").text,
-            "review_rating": text_to_number[rating.lower()],
-            "image_url": urljoin("https://books.toscrape.com", soup.find("div", id="product_gallery").find("img")["src"])
+            "review_rating": soup.find("p", class_="star-rating")["class"][1],
+            "image_url":soup.find("div", id="product_gallery").find("img")["src"]
         }
-        return book
+        return transform_ressource_book(book)
     except AttributeError as e: # lève une erreur s'il y a un caillou dans la soup
         print("Une erreur est survenue (scrap_one_element): ", e)
 
@@ -118,7 +132,6 @@ def scrap_all_in_all_category(url: str):
     for url_category in list_url_categories:
         export_csv(scrap_all_in_category(url_category))
     return print("Toutes les catégories ont été exportées dans le dossier Dossier_CSV")
-
 
 def extraction_img():
     """
@@ -239,7 +252,6 @@ def user_interface():
             case "4": extraction_img()
             case "0": break
             case _: print("Veuillez entrer une valeur valide")
-
 
 
 if __name__ == "__main__":
