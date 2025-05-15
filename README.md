@@ -18,7 +18,7 @@ https://www.python.org/downloads/release/python-3120/
 ### 1. Cloner ce dépôt
 ```bash
 git clone git@github.com:C-eorl/Projet_2---Scrapping.git
-cd scraping-livres
+cd Projet_2---Scrapping
 ```
 ### 2. Créer un environnement virtuel
 ```bash
