@@ -28,6 +28,7 @@ def request_url(url: str) :
     except requests.exceptions.RequestException as e: # lève erreur si url non valide
         print("L'URL n'est pas valide :", e)
         print("Veuillez entrez une URL valide")
+
 def transform_ressource_book(book:dict):
     """
     Transforme les valeurs de la variable book pour les prendre utilisables.
@@ -48,7 +49,7 @@ def transform_ressource_book(book:dict):
     book["review_rating"] = text_to_number[rating.lower()]
     image_url = book["image_url"]
     book["image_url"] = urljoin("https://books.toscrape.com", image_url)
-    book["path_img"] = f"Dossier_img/{book["category"]}/{safe_filename(book["title"])}"
+    book["path_img"] = f"Dossier_img/{book["category"]}/{safe_filename(book["title"])}.jpg"
     return book
 
 def scrap_one_element(url: str):
@@ -168,7 +169,7 @@ def extraction_img():
                         title = ligne["title"]
                         url_img = ligne["image_url"]
                         title_clean = safe_filename(title)
-                        path_file_img = path_directory_category_img + f"/{title_clean}.jpg"
+                        path_file_img = ligne["path_img"]
 
                         executor.submit(download_image, title_clean, url_img, path_file_img, nom_category)
         return print("Le téléchargement des images est terminé.")
